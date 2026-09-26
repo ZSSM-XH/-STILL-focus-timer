@@ -1,3 +1,253 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="description" content="无需登录的专注时钟、白噪音与休息仪式。记录保存在你的浏览器里。"><link rel="icon" href="./favicon.svg"><title>STILL · 专注与片刻</title>  <script type="module" crossorigin src="./assets/index-B9c-aP83.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BuZqclIT.css">
-</head><body><div id="root"></div></body></html>
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="无需登录的专注时钟、白噪音与休息仪式。记录保存在你的浏览器里。"
+    />
+    <link rel="icon" href="./favicon.svg" />
+    <title>STILL · 专注与片刻</title>
+    <script type="module" crossorigin src="./assets/index-B9c-aP83.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BuZqclIT.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script>
+      /*
+       * 浮层/小面板：
+       * 点击外部自动关闭
+       */
+      document.addEventListener("pointerdown", function (event) {
+        /* 完成提醒 */
+        document
+          .querySelectorAll("details.reminder-settings[open]")
+          .forEach(function (panel) {
+            if (!panel.contains(event.target)) {
+              panel.removeAttribute("open");
+            }
+          });
+
+        /* 编辑我的放松清单 */
+        const editor = document.querySelector(".wheel-page .options-editor");
+
+        if (editor) {
+          const toggle = Array.from(
+            document.querySelectorAll(".wheel-page .text-button"),
+          ).find(function (button) {
+            return (
+              button.textContent.includes("编辑我的放松清单") ||
+              button.textContent.includes("收起选项")
+            );
+          });
+
+          const clickedEditor = editor.contains(event.target);
+          const clickedToggle = toggle && toggle.contains(event.target);
+
+          if (!clickedEditor && !clickedToggle && toggle) {
+            toggle.click();
+          }
+        }
+      });
+
+      /*
+       * Esc 同样关闭
+       */
+      document.addEventListener("keydown", function (event) {
+        if (event.key !== "Escape") return;
+
+        document
+          .querySelectorAll("details.reminder-settings[open]")
+          .forEach(function (panel) {
+            panel.removeAttribute("open");
+          });
+
+        const editor = document.querySelector(".wheel-page .options-editor");
+
+        if (editor) {
+          const toggle = Array.from(
+            document.querySelectorAll(".wheel-page .text-button"),
+          ).find(function (button) {
+            return button.textContent.includes("收起选项");
+          });
+
+          if (toggle) toggle.click();
+        }
+      }); /* =========================
+   STILL 页面交互音效
+   ========================= */
+
+      (() => {
+        let audioCtx = null;
+
+        async function getAudio() {
+          const AudioContextClass =
+            window.AudioContext || window.webkitAudioContext;
+
+          if (!AudioContextClass) {
+            console.warn("浏览器不支持 Web Audio");
+            return null;
+          }
+
+          if (!audioCtx) {
+            audioCtx = new AudioContextClass();
+          }
+
+          if (audioCtx.state === "suspended") {
+            await audioCtx.resume();
+          }
+
+          return audioCtx;
+        }
+
+        /* 普通按钮：很轻的“嗒” */
+        async function playClick() {
+          const a = await getAudio();
+          if (!a) return;
+
+          const now = a.currentTime;
+
+          const osc = a.createOscillator();
+          const gain = a.createGain();
+
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.exponentialRampToValueAtTime(390, now + 0.055);
+
+          gain.gain.setValueAtTime(0.07, now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.065);
+
+          osc.connect(gain);
+          gain.connect(a.destination);
+
+          osc.start(now);
+          osc.stop(now + 0.07);
+        }
+
+        /* 抽卡：两声很轻的木质/星光感 */
+        async function playCard() {
+          const a = await getAudio();
+          if (!a) return;
+
+          const now = a.currentTime;
+
+          [
+            [520, 0, 0.07],
+            [740, 0.075, 0.045],
+          ].forEach(([freq, delay, volume]) => {
+            const osc = a.createOscillator();
+            const gain = a.createGain();
+
+            const start = now + delay;
+
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(freq, start);
+
+            osc.frequency.exponentialRampToValueAtTime(
+              freq * 0.82,
+              start + 0.1,
+            );
+
+            gain.gain.setValueAtTime(volume, start);
+
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.13);
+
+            osc.connect(gain);
+            gain.connect(a.destination);
+
+            osc.start(start);
+            osc.stop(start + 0.14);
+          });
+        }
+
+        /* 硬币：短促银色金属声 */
+        async function playCoin() {
+          const a = await getAudio();
+          if (!a) return;
+
+          const now = a.currentTime;
+
+          const notes = [
+            [1380, 0.0, 0.055],
+            [1760, 0.11, 0.045],
+            [2240, 0.22, 0.035],
+          ];
+
+          notes.forEach(([freq, delay, volume]) => {
+            const osc = a.createOscillator();
+            const gain = a.createGain();
+
+            const start = now + delay;
+
+            osc.type = "sine";
+
+            osc.frequency.setValueAtTime(freq, start);
+
+            osc.frequency.exponentialRampToValueAtTime(
+              freq * 0.82,
+              start + 0.16,
+            );
+
+            gain.gain.setValueAtTime(volume, start);
+
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+
+            osc.connect(gain);
+            gain.connect(a.destination);
+
+            osc.start(start);
+            osc.stop(start + 0.19);
+          });
+        }
+        /*
+         * 用 pointerdown：
+         * 浏览器更容易把它识别成真正的用户操作
+         */
+        document.addEventListener(
+          "pointerdown",
+          async function (event) {
+            if (!(event.target instanceof Element)) {
+              return;
+            }
+
+            const target = event.target.closest("button, summary, .style-card");
+
+            if (!target) return;
+
+            if (target.tagName === "BUTTON" && target.disabled) {
+              return;
+            }
+
+            const text = (target.textContent || "").trim();
+
+            /* 抽卡 */
+            if (
+              text.includes("抽一个片刻") ||
+              text.includes("再抽一次") ||
+              text.includes("转动转盘") ||
+              text.includes("再转一次")
+            ) {
+              await playCard();
+              return;
+            }
+
+            /* 抛硬币 */
+            if (text.includes("抛硬币")) {
+              await playCoin();
+              return;
+            }
+
+            /* 普通按钮 */
+            await playClick();
+          },
+          true,
+        );
+      })();
+    </script>
+  </body>
+</html>
